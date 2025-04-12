@@ -12,14 +12,13 @@ with open(pdf_path, "rb") as pdf_file:
         page_text = page.extract_text() or ""
         all_text += page_text
 
-print(all_text)
-
+#print(all_text)
 
 from google import genai
 
 client = genai.Client(api_key="AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc")
 
 response = client.models.generate_content(
-    model="gemini-2.0-flash", contents="Explain how AI works in a few words"
+    model="gemini-2.0-flash", contents="Summarize the following text: " + all_text
 )
 print(response.text)
