@@ -19,12 +19,15 @@ def extract_pdf_text(file_bytes: bytes) -> str:
         all_text += page_text
     return all_text
 
+last_response = ""
+
 @app.post("/process/")
 async def process_request(
     file: UploadFile = File(...),
     user_option: int = Form(...),
     user_input: str = Form("")
 ):
+    global last_response
     # Ensure the uploaded file is a PDF.
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="File must be a PDF.")
@@ -36,13 +39,9 @@ async def process_request(
     # Build a prompt based on the user's selected option.
     # Option 1 is interpreted as a one-shot chat (for interactive chat, consider websockets or session management).
     if user_option == 1:
-        # For an interactive chat scenario, you might need to manage conversation history.
-        # Here we simulate one prompt by simply appending the user input to some context.
-        conversation_context = (
-            "The following conversation is based on a PDF file:\n\n" +
-            all_text + "\n\n"
-        )
-        prompt = conversation_context + f"User: {user_input}\nAI:"
+        prompt = f"Start a conversation with a short paragraph about the following text: {all_text}"
+        if (len(last_response) > 0):
+            prompt = f"Continue the following conversation with a response:\n user:\"{prompt}\",\n You:\"{last_response}\",\n user:\"{user_input}\",\n You:"
     elif user_option == 2:
         prompt = (
             f"Respond to the question: \"{user_input}\" based on the following text:\n\n" +
@@ -80,6 +79,8 @@ async def process_request(
         model="gemini-2.0-flash",
         contents=prompt
     )
+
+    last_response = response.text
 
     return JSONResponse({
         "response": response.text
