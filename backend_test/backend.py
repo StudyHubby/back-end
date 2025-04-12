@@ -1,92 +1,91 @@
-import os
+import io
 import PyPDF2
-from google import genai
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.responses import JSONResponse
 
+# Import your AI client library and create a client instance.
+from google import genai
 client = genai.Client(api_key="AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc")
 
-# Determine the absolute path of the directory where the script resides
-script_dir = os.path.dirname(os.path.abspath(__file__))
-pdf_path = os.path.join(script_dir, "test.pdf")
+app = FastAPI()
 
-with open(pdf_path, "rb") as pdf_file:
+def extract_pdf_text(file_bytes: bytes) -> str:
+    """Extracts text from a PDF given its byte content."""
+    pdf_file = io.BytesIO(file_bytes)
     reader = PyPDF2.PdfReader(pdf_file)
     all_text = ""
     for page in reader.pages:
         page_text = page.extract_text() or ""
         all_text += page_text
+    return all_text
 
-#print(all_text)
+@app.post("/process/")
+async def process_request(
+    file: UploadFile = File(...),
+    user_option: int = Form(...),
+    user_input: str = Form("")
+):
+    # Ensure the uploaded file is a PDF.
+    if file.content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="File must be a PDF.")
 
+    # Read the file and extract the text.
+    file_bytes = await file.read()
+    all_text = extract_pdf_text(file_bytes)
 
-""" response = client.models.generate_content(
-    model="gemini-2.0-flash", contents="Summarize the following text: " + all_text
-)
-print(response.text) """
-
-# Display menu options to the user
-print("Select an option:")
-print("1: Do chat")
-print("2: Ask about lecture")
-print("3: Make summary")
-print("4: Generate multiple choice questions")
-print("5: Explain like I am a 5-year-old")
-print("6: Tell me if I still have work to do")
-
-# Prompt for input
-user_option = input("Enter your option (1-6): ")
-user_input = input("Make your request: ")
-
-
-# Build a prompt based on the user's choice
-if user_option == '1':
-    # Initialize conversation context with the PDF text as context.
-    conversation_context = (
-        "The following conversation is based on the context from a PDF file:\n\n"
-        + all_text
-        + "\n\n"
-    )
-    print("Starting chat. Type /end to finish the chat.\n")
-
-    while True:
-        user_message = input("You: ")
-        if user_message.strip() == "/end":
-            print("Chat ended.")
-            break
-        
-        # Append the user's message to the conversation context.
-        conversation_context += f"User: {user_message}\n"
-        
-        # Generate AI response based on the complete conversation history.
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=conversation_context + "AI: "
+    # Build a prompt based on the user's selected option.
+    # Option 1 is interpreted as a one-shot chat (for interactive chat, consider websockets or session management).
+    if user_option == 1:
+        # For an interactive chat scenario, you might need to manage conversation history.
+        # Here we simulate one prompt by simply appending the user input to some context.
+        conversation_context = (
+            "The following conversation is based on a PDF file:\n\n" +
+            all_text + "\n\n"
         )
-        ai_reply = response.text.strip()
-        print("AI:", ai_reply)
-        
-        # Append the AI reply to the conversation context.
-        conversation_context += f"AI: {ai_reply}\n"
-elif user_option == '2':
-    prompt = f"Respond to the question: \"{user_input}\" based on the following text:\n\n{all_text}"
-elif user_option == '3':
-    prompt = f"Create an in depth summary about the following text:\n\n{all_text}"
-elif user_option == '4':
-    prompt = f"Generate multiple choice questions that test understanding of the following text:\n\n{all_text}. Format it so there are 10 questions that are multiple choice. And at the end, have the answer to the questions labeled at the end from 1-10. Before you list the answers, list out 10 underscores then list the answers with the corresponding number."
-elif user_option == '5':
-    prompt = f"Explain the following text in very simple terms as if I were a 5-year-old:\n\n{all_text}"
-elif user_option == '6':
-    #user_summary = input("Provide a simple explanation of the lecture in your own words:\n")
-    prompt = f"Compare the following user-provided summary to the original text.\n\nUser Summary:\n{user_input}\n\nLecture Content:\n{all_text}\n\nEvaluate how well the summary captures the key points, identify missing concepts, and suggest any improvements."
+        prompt = conversation_context + f"User: {user_input}\nAI:"
+    elif user_option == 2:
+        prompt = (
+            f"Respond to the question: \"{user_input}\" based on the following text:\n\n" +
+            all_text
+        )
+    elif user_option == 3:
+        prompt = (
+            "Create an in depth summary about the following text:\n\n" +
+            all_text
+        )
+    elif user_option == 4:
+        prompt = (
+            "Generate multiple choice questions that test understanding of the following text:\n\n" +
+            all_text +
+            ". Format it so there are 10 questions that are multiple choice. And at the end, "
+            "have the answer to the questions labeled at the end from 1-10. Before you list the answers, "
+            "list out 10 underscores then list the answers with the corresponding number."
+        )
+    elif user_option == 5:
+        prompt = (
+            "Explain the following text in very simple terms as if I were a 5-year-old:\n\n" +
+            all_text
+        )
+    elif user_option == 6:
+        prompt = (
+            "Compare the following user-provided summary to the original text.\n\n" +
+            f"User Summary:\n{user_input}\n\nLecture Content:\n{all_text}\n\n" +
+            "Evaluate how well the summary captures the key points, identify missing concepts, and suggest any improvements."
+        )
+    else:
+        raise HTTPException(status_code=400, detail="Invalid option. Please choose a number between 1 and 6.")
 
-else:
-    print("Invalid option. Please run the script again and choose a number between 1 and 6.")
-    exit(1)
+    # Generate a response using your AI service.
+    response = client.models.generate_content(
+        model="gemini-2.0-flash",
+        contents=prompt
+    )
 
+    return JSONResponse({
+        "response": response.text
+    })
 
-response = client.models.generate_content(
-    model="gemini-2.0-flash", 
-    contents=prompt
-)
-
-print("\nResponse:")
-print(response.text)
+# Run the FastAPI application.
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
