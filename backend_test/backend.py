@@ -1,31 +1,46 @@
 import os
 import PyPDF2
-from google import genai
-import time # Needed for potential delays or TTL management
+# Correct import for the Gemini library
+import google.generativeai as genai
+# from google.genai import types # types is usually accessed via genai.types
+import datetime # Import datetime for timedelta
 
-API_KEY = "AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc"
+# --- Configuration ---
+# WARNING: Avoid hardcoding API keys. Use environment variables or a secure method.
+# API_KEY = os.getenv("GEMINI_API_KEY") # Example using environment variable
+API_KEY = "AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc" # Your original key (replace with secure method)
+if not API_KEY:
+    print("Error: GEMINI_API_KEY environment variable not set.")
+    exit(1)
+
 PDF_FILENAME = "test.pdf"
 # Use a model compatible with CachedContent and your generation needs
-# 'gemini-1.5-flash-latest' or 'gemini-1.5-pro-latest' are good candidates.
-MODEL_NAME = "gemini-1.5-flash-latest"
+MODEL_NAME = "models/gemini-1.5-flash-001"
 CACHE_TTL_SECONDS = 3600 # Cache for 1 hour
 
 # --- Initialization ---
 try:
+    # Correct configuration call
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel(MODEL_NAME)
+except AttributeError as e:
+     print(f"Error initializing Gemini client: {e}")
+     print("This might be due to an old library version. Try upgrading: pip install --upgrade google-generativeai")
+     exit(1)
 except Exception as e:
     print(f"Error initializing Gemini client: {e}")
     exit(1)
 
 
 # --- PDF Processing ---
+# Consider using 'pypdf' instead of 'PyPDF2' as it's actively maintained
 script_dir = os.path.dirname(os.path.abspath(__file__))
 pdf_path = os.path.join(script_dir, PDF_FILENAME)
 all_text = ""
 
 try:
     with open(pdf_path, "rb") as pdf_file:
+        # Consider switching to pypdf: from pypdf import PdfReader
         reader = PyPDF2.PdfReader(pdf_file)
         if not reader.pages:
              print(f"Error: No pages found in PDF: {pdf_path}")
@@ -36,6 +51,7 @@ try:
 except FileNotFoundError:
     print(f"Error: PDF file not found at {pdf_path}")
     exit(1)
+# Consider more specific exceptions for PyPDF2 if needed
 except Exception as e:
     print(f"Error reading PDF file: {e}")
     exit(1)
@@ -53,16 +69,19 @@ try:
         display_name="lecture_pdf_context",
         system_instruction= "You are an assistant analyzing a lecture transcript provided in the cached content. Base all your responses strictly on this text.",
         contents=[all_text], # The actual content to cache
-        ttl=time.Duration(seconds=CACHE_TTL_SECONDS),
+        # Correct way to specify TTL using datetime.timedelta
+        ttl=datetime.timedelta(seconds=CACHE_TTL_SECONDS),
     )
     print(f"Cache created successfully. Name: {pdf_cache.name}")
     # The cache name (pdf_cache.name) is what you'll use later
 
 except Exception as e:
+    # Catching specific exceptions like PermissionDeniedError might be useful
     print(f"Error creating cached content: {e}")
     print("Proceeding without cache. Each request will send the full text.")
     # We can continue without cache, but it will be less efficient
 
+# --- (Rest of your user interaction and generation code remains the same) ---
 
 # --- User Interaction ---
 print("\nSelect an option (based on the loaded PDF):")
@@ -81,11 +100,8 @@ user_instruction = "" # This will contain only the task-specific instruction
 if user_option == '1':
     user_instruction = "Engage in a friendly chat based *only* on the provided lecture content."
 elif user_option == '2':
-    # It's often better to let the user ask *their* question
     user_question = input("What specifically would you like to ask about the lecture? ")
     user_instruction = f"Based *only* on the lecture content, answer the following question: {user_question}"
-    # Alternative if you want the AI to generate questions:
-    # user_instruction = "Generate some detailed questions a student might ask about the lecture content."
 elif user_option == '3':
     user_instruction = "Create a set of quiz questions (e.g., short answer, fill-in-the-blank) using *only* the provided lecture text."
 elif user_option == '4':
@@ -112,33 +128,48 @@ try:
     if pdf_cache:
         # *** Use the cache ***
         # Pass the cache object directly and the new user instruction
+        print(f"Using cache: {pdf_cache.name}") # Add log
         response = model.generate_content(
             [pdf_cache, user_instruction], # Combine cache reference and user instruction
-            # You might want to add generation_config here if needed
-            # generation_config=genai.types.GenerationConfig(...)
+             generation_config=genai.types.GenerationConfig(
+                # Add temperature or other configs if needed
+             )
         )
     else:
         # *** Fallback: Send full text if caching failed ***
         print("Warning: Cache not available. Sending full text.")
-        # Rebuild the prompt including the full text
-        full_prompt = f"System Instruction: You are an assistant analyzing the following lecture transcript. Base all your responses strictly on this text.\n\nLecture Content:\n{all_text}\n\nUser Request:\n{user_instruction}"
+        # Rebuild the prompt including the full text and system instruction
+        # (Note: The system instruction is part of the cache, so include it here if not using cache)
+        full_prompt = f"""System: You are an assistant analyzing the following lecture transcript. Base all your responses strictly on this text.
+
+Lecture Content:
+{all_text}
+
+User Request:
+{user_instruction}"""
         response = model.generate_content(
-            full_prompt
-            # generation_config=genai.types.GenerationConfig(...)
+            full_prompt,
+            generation_config=genai.types.GenerationConfig(
+                # Add temperature or other configs if needed
+            )
          )
 
     # --- Display Response ---
     print("\nResponse:")
-    # Handle potential lack of text in response or safety blocks
-    if response.parts:
-         print(response.text)
-    elif response.prompt_feedback:
-         print(f"Content generation blocked. Reason: {response.prompt_feedback.block_reason}")
-         if response.prompt_feedback.safety_ratings:
-              for rating in response.prompt_feedback.safety_ratings:
-                   print(f"  - {rating.category}: {rating.probability}")
-    else:
-         print("No response text received.")
+    # Improved response handling
+    try:
+        print(response.text)
+    except ValueError: # Handle cases where accessing .text might fail due to blocking
+        if response.prompt_feedback:
+             print(f"Content generation blocked. Reason: {response.prompt_feedback.block_reason}")
+             if response.prompt_feedback.safety_ratings:
+                  for rating in response.prompt_feedback.safety_ratings:
+                       print(f"  - {rating.category}: {rating.probability}")
+        else:
+             print("No response text received and no blocking reason found.")
+    except AttributeError: # Handle cases where response might not have expected attributes
+        print("Unexpected response format received.")
+        print(response)
 
 
 except Exception as e:
