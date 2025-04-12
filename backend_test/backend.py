@@ -41,7 +41,7 @@ user_input = input("Make your request: ")
 if user_option == '1':
     prompt = f"Engage in a friendly chat based on the following text:\n\n{all_text}"
 elif user_option == '2':
-    prompt = f"Ask detailed questions about the lecture based on the following text:\n\n{all_text}"
+    prompt = f"Respond to the question: \"{user_input}\" based on the following text:\n\n{all_text}"
 elif user_option == '3':
     prompt = f"Create a set of quizzes using the following lecture text:\n\n{all_text}"
 elif user_option == '4':
