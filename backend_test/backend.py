@@ -18,7 +18,7 @@ except Exception as e:
     print(f"Error initializing Gemini client: {e}")
     exit(1)
 
-    
+
 # --- PDF Processing ---
 script_dir = os.path.dirname(os.path.abspath(__file__))
 pdf_path = os.path.join(script_dir, PDF_FILENAME)
@@ -48,11 +48,10 @@ if not all_text.strip():
 pdf_cache = None
 try:
     print("Creating content cache for the PDF text...")
-    # Create the cache
     pdf_cache = genai.caching.CachedContent.create(
         model=model.model_name, # Use the same model name used for generation
         display_name="lecture_pdf_context",
-        system_instruction="You are an assistant analyzing a lecture transcript provided in the cached content. Base all your responses strictly on this text.",
+        system_instruction= "You are an assistant analyzing a lecture transcript provided in the cached content. Base all your responses strictly on this text.",
         contents=[all_text], # The actual content to cache
         ttl=time.Duration(seconds=CACHE_TTL_SECONDS),
     )
