@@ -34,6 +34,7 @@ print("6: Tell me if I still have work to do")
 
 # Prompt for input
 user_option = input("Enter your option (1-6): ")
+user_input = input("Make your request: ")
 
 
 # Build a prompt based on the user's choice
@@ -48,8 +49,8 @@ elif user_option == '4':
 elif user_option == '5':
     prompt = f"Explain the following text in very simple terms as if I were a 5-year-old:\n\n{all_text}"
 elif user_option == '6':
-    user_summary = input("Provide a simple explanation of the lecture in your own words:\n")
-    prompt = f"Compare the following user-provided summary to the original text.\n\nUser Summary:\n{user_summary}\n\nLecture Content:\n{all_text}\n\nEvaluate how well the summary captures the key points, identify missing concepts, and suggest any improvements."
+    #user_summary = input("Provide a simple explanation of the lecture in your own words:\n")
+    prompt = f"Compare the following user-provided summary to the original text.\n\nUser Summary:\n{user_input}\n\nLecture Content:\n{all_text}\n\nEvaluate how well the summary captures the key points, identify missing concepts, and suggest any improvements."
 
 else:
     print("Invalid option. Please run the script again and choose a number between 1 and 6.")
