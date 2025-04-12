@@ -39,7 +39,33 @@ user_input = input("Make your request: ")
 
 # Build a prompt based on the user's choice
 if user_option == '1':
-    prompt = f"Engage in a friendly chat based on the following text:\n\n{all_text}"
+    # Initialize conversation context with the PDF text as context.
+    conversation_context = (
+        "The following conversation is based on the context from a PDF file:\n\n"
+        + all_text
+        + "\n\n"
+    )
+    print("Starting chat. Type /end to finish the chat.\n")
+
+    while True:
+        user_message = input("You: ")
+        if user_message.strip() == "/end":
+            print("Chat ended.")
+            break
+        
+        # Append the user's message to the conversation context.
+        conversation_context += f"User: {user_message}\n"
+        
+        # Generate AI response based on the complete conversation history.
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=conversation_context + "AI: "
+        )
+        ai_reply = response.text.strip()
+        print("AI:", ai_reply)
+        
+        # Append the AI reply to the conversation context.
+        conversation_context += f"AI: {ai_reply}\n"
 elif user_option == '2':
     prompt = f"Respond to the question: \"{user_input}\" based on the following text:\n\n{all_text}"
 elif user_option == '3':
