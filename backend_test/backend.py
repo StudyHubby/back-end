@@ -27,7 +27,7 @@ print(response.text) """
 print("Select an option:")
 print("1: Do chat")
 print("2: Ask about lecture")
-print("3: Make quizzes")
+print("3: Make summary")
 print("4: Generate multiple choice questions")
 print("5: Explain like I am a 5-year-old")
 print("6: Tell me if I still have work to do")
@@ -69,7 +69,7 @@ if user_option == '1':
 elif user_option == '2':
     prompt = f"Respond to the question: \"{user_input}\" based on the following text:\n\n{all_text}"
 elif user_option == '3':
-    prompt = f"Create a set of quizzes using the following lecture text:\n\n{all_text}"
+    prompt = f"Create an in depth summary about the following text:\n\n{all_text}"
 elif user_option == '4':
     prompt = f"Generate multiple choice questions that test understanding of the following text:\n\n{all_text}. Format it so there are 10 questions that are multiple choice. And at the end, have the answer to the questions labeled at the end from 1-10. Before you list the answers, list out 10 underscores then list the answers with the corresponding number."
 elif user_option == '5':
