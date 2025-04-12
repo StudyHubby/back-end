@@ -45,7 +45,7 @@ elif user_option == '2':
 elif user_option == '3':
     prompt = f"Create a set of quizzes using the following lecture text:\n\n{all_text}"
 elif user_option == '4':
-    prompt = f"Generate multiple choice questions that test understanding of the following text:\n\n{all_text}"
+    prompt = f"Generate multiple choice questions that test understanding of the following text:\n\n{all_text}. Format it so there are 10 questions that are multiple choice. And at the end, have the answer to the questions labeled at the end from 1-10. Before you list the answers, list out 10 underscores then list the answers with the corresponding number."
 elif user_option == '5':
     prompt = f"Explain the following text in very simple terms as if I were a 5-year-old:\n\n{all_text}"
 elif user_option == '6':
