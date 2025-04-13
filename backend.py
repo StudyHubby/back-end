@@ -1,6 +1,7 @@
 import io
 import PyPDF2
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # Import your AI client library and create a client instance.
@@ -8,6 +9,13 @@ from google import genai
 client = genai.Client(api_key="AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc")
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000/"],
+    allow_methods=[""],
+    allow_headers=[""],
+)
 
 def extract_pdf_text(file_bytes: bytes) -> str:
     """Extracts text from a PDF given its byte content."""
