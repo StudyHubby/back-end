@@ -19,6 +19,27 @@ def extract_pdf_text(file_bytes: bytes) -> str:
         all_text += page_text
     return all_text
 
+def parse_questions(quizz_test):
+    split_test = quizz_test.split("\n")
+    questions = []
+    i = 0
+    
+    for line in split_test:
+        if (len(line) > 0):
+            if (i < 25):
+                if (i % 5 == 0):
+                    questions.append({"question": line})
+                else:
+                    questions[i // 5][f"option {i%5}"] = line
+
+            else:
+                questions[(i-1) % 5]["answer"] = line
+                
+            i += 1
+    return questions
+
+
+
 last_response = ""
 all_text = ""
 file_name = ""
@@ -70,9 +91,8 @@ async def process_request(
         prompt = (
             "Generate multiple choice questions that test understanding of the following text:\n\n" +
             all_text +
-            ". Format it so there are 10 questions that are multiple choice. And at the end, "
-            "have the answer to the questions labeled at the end from 1-10. Before you list the answers, "
-            "list out 10 underscores then list the answers with the corresponding number."
+            ". Format it so there are 5 questions that are multiple choice with 4 choices each. And at the end, "
+            "have the answer to the questions labeled at the end from 1-5. Do not add any extra text to the response."
         )
     elif user_option == 5:
         prompt = (
@@ -94,6 +114,8 @@ async def process_request(
         contents=prompt
     )
 
+    if (user_option == 4):
+        return JSONResponse({"response": parse_questions(response.text)})
     last_response = response.text
 
     return JSONResponse({
