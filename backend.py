@@ -20,14 +20,16 @@ def extract_pdf_text(file_bytes: bytes) -> str:
     return all_text
 
 last_response = ""
+all_text = ""
+file_name = ""
 
-@app.post("/process/")
+@app.post("/upload/")
 async def process_request(
     file: UploadFile = File(...),
-    user_option: int = Form(...),
-    user_input: str = Form("")
+    name: str = Form("")
 ):
-    global last_response
+    global all_text
+    global file_name
     # Ensure the uploaded file is a PDF.
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="File must be a PDF.")
@@ -35,6 +37,18 @@ async def process_request(
     # Read the file and extract the text.
     file_bytes = await file.read()
     all_text = extract_pdf_text(file_bytes)
+    file_name = name
+
+    return JSONResponse({"message": "sucess"})
+    
+
+@app.post("/process/")
+async def process_request(
+    user_option: int = Form(...),
+    user_input: str = Form("")
+):
+    global last_response
+    global all_text
 
     # Build a prompt based on the user's selected option.
     # Option 1 is interpreted as a one-shot chat (for interactive chat, consider websockets or session management).
