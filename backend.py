@@ -3,12 +3,20 @@ import PyPDF2
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse
+import os
+
 
 # Import your AI client library and create a client instance.
 from google import genai
 client = genai.Client(api_key="AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc")
 
 app = FastAPI()
+
+@app.get("/")
+async def read_index():
+    # Adjust the file path if necessary
+    return FileResponse(os.path.join(os.getcwd(), "index.html"))
 
 app.add_middleware(
     CORSMiddleware,
