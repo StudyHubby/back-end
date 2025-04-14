@@ -9,7 +9,7 @@ import os
 
 # Import your AI client library and create a client instance.
 from google import genai
-client = genai.Client(api_key="AIzaSyCDTI817Tn3jqk72GOfH3heJhgrz23Dgqc")
+client = genai.Client(api_key="API_KEY_HERE")
 
 app = FastAPI()
 
